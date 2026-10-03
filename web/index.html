@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SISSHIN HZ MACHINE</title>
+<style>
+:root{--bg:#0d0e0f;--panel:#121314;--line:#2a2c2e;--dim:#7d8083;--ink:#e9e7e2;--red:#c8382d;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:400 13px/1.5 "Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Segoe UI",system-ui,sans-serif;overflow:auto;user-select:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 20px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 22px;padding:16px 0;border-bottom:1px solid var(--line)}
+.logo{font-weight:500;letter-spacing:.38em;font-size:15px;display:flex;align-items:center;gap:10px}
+.logo i{width:9px;height:9px;border-radius:50%;background:var(--red);display:inline-block}
+.name{color:var(--dim);font-weight:300;letter-spacing:.12em}
+.sp{flex:1}
+button,select{background:none;color:var(--ink);border:1px solid var(--line);padding:5px 12px;font:inherit;cursor:pointer;border-radius:0}
+button:hover,select:hover{border-color:var(--dim)}
+button.on{border-color:var(--ink)}
+select{background:var(--panel)}
+.grp{display:flex}.grp button+button{margin-left:-1px}
+main{display:grid;grid-template-columns:1fr 1.35fr 1fr}
+section{padding:20px 22px 20px 0;border-right:1px solid var(--line)}
+section+section{padding-left:22px}
+section:last-child{border-right:0;padding-right:0}
+h2{font-weight:500;font-size:13px;margin:0 0 2px;letter-spacing:.06em}
+.sub{color:var(--dim);margin:0 0 14px;font-size:12px}
+.blk{margin-bottom:24px}
+.ctl{margin:0 0 10px}
+.ctl label{display:flex;justify-content:space-between;color:var(--dim);font-size:12px}
+.ctl label b{font-weight:400;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;margin:0;cursor:ew-resize}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:3px;height:15px;background:var(--ink);margin-top:-7px}
+.amp .ctl{display:inline-block;width:calc(50% - 10px);margin-right:16px;vertical-align:top}
+.amp .ctl:nth-child(even){margin-right:0}
+footer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;align-items:end;border-top:1px solid var(--line);padding-top:16px}
+.meter span{color:var(--dim);font-size:12px}
+.bar{height:3px;background:var(--line);margin:4px 0 8px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ink)}
+.bar i.hot{background:var(--red)}
+.note{color:var(--dim);font-size:12px;margin-top:14px}
+@media(max-width:860px){main,footer{grid-template-columns:1fr}section,section+section{padding:18px 0;border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo"><i></i>SISSHIN</div>
+  <div class="name">HZ MACHINE — MODERN GUITAR SYSTEM</div>
+  <div class="sp"></div>
+  <div class="grp"><button id="prev" title="Previous preset">‹</button><select id="preset" title="Preset browser"></select><button id="next" title="Next preset">›</button></div>
+  <div class="grp"><button id="ab-a" class="on" title="Slot A">A</button><button id="ab-b" title="Slot B (copies A on first use)">B</button></div>
+</header>
+<main>
+<section>
+  <div class="blk"><h2>Input</h2><p class="sub">Gain and gate</p><div id="g-in"></div></div>
+  <div class="blk"><h2>HZ DRIVE</h2><p class="sub">Tightening overdrive</p>
+    <div class="grp" style="margin-bottom:14px"><button id="drv-on" title="Pedal on/off">On</button></div><div id="g-drv"></div></div>
+</section>
+<section class="amp">
+  <h2>HZ MACHINE</h2><p class="sub">Amplifier</p>
+  <div class="grp" id="modes" style="margin-bottom:16px"></div>
+  <div id="g-amp"></div>
+</section>
+<section>
+  <div class="blk"><h2>Cabinet</h2><p class="sub">Generated cabinet response</p>
+    <div class="grp" id="cabs" style="margin-bottom:14px"></div><div id="g-cab"></div></div>
+</section>
+</main>
+<footer>
+  <div><div class="meter"><span>Input</span><div class="bar"><i id="m-in"></i></div><span>Output</span><div class="bar"><i id="m-out"></i></div></div></div>
+  <div id="g-out"></div>
+  <div class="ctl"><label>Oversampling</label><div class="grp"><button id="os2">2x</button><button id="os4">4x</button></div></div>
+</footer>
+</div>
+
+<script type="module">
+// [group,id,label,min,max,default,step,unit]
+const P=[
+['in','ingain','Input gain',0,24,6,.1,' dB'],['in','gate','Gate threshold',-80,-20,-55,1,' dB'],['in','hpf','Input HPF',20,300,70,1,' Hz'],
+['drv','d_drive','Drive',0,10,4,.1,''],['drv','d_tone','Tone',0,10,5,.1,''],['drv','d_level','Level',0,10,6,.1,''],['drv','d_tight','Tight',0,10,6,.1,''],
+['amp','gain','Gain',0,10,6,.1,''],['amp','tight','Tight',0,10,5,.1,''],['amp','bass','Bass',0,10,5,.1,''],['amp','mid','Mid',0,10,6,.1,''],
+['amp','treble','Treble',0,10,5,.1,''],['amp','pres','Presence',0,10,5,.1,''],['amp','sag','Sag',0,10,3,.1,''],['amp','master','Master',0,10,6,.1,''],
+['cab','cabmix','IR mix',0,100,100,1,' %'],['cab','ohpf','Output HPF',20,200,40,1,' Hz'],['cab','olpf','Output LPF',3000,14000,8500,10,' Hz'],
+['out','out','Output',-24,12,-6,.1,' dB']];
+const MODES=['Clean','Crunch','Modern','Lead'],CABS=['1x12','2x12','4x12'];
+// mode: 0 Clean 1 Crunch 2 Modern 3 Lead | cab: 0 1x12 1 2x12 2 4x12
+const PRESETS={
+'Modern rhythm':{gain:6,tight:6,bass:5,mid:6,treble:5,pres:5,d_drive:3,mode:2,cab:2},
+'Tight drop C':{gain:6.5,tight:7,bass:4.5,mid:6.5,treble:5.5,pres:5,d_drive:4,mode:2,cab:2},
+'Djent':{gain:7,tight:8.5,bass:4,mid:7,treble:6,pres:6,d_drive:5,d_tight:8,mode:2,cab:1},
+'Death metal':{gain:8,tight:6,bass:6,mid:4.5,treble:6,pres:5.5,d_drive:6,mode:2,cab:2},
+'Modern lead':{gain:7,tight:4,bass:4,mid:7,treble:5,pres:5,sag:5,d_drive:3,mode:3,cab:1},
+'Singing lead':{gain:7.5,tight:3,bass:4,mid:6.5,treble:4.5,pres:4,sag:6,mode:3,cab:0},
+'Crunch':{gain:4.5,tight:3,bass:5,mid:6,treble:5.5,pres:5,d_drive:0,mode:1,cab:1},
+'Clean':{gain:4,tight:2,bass:5,mid:5,treble:6,pres:5,d_drive:0,mode:0,cab:0}};
+
+let Juce=null;
+try{if(window.__JUCE__)Juce=await import('./js/juce/index.js')}catch(e){console.warn(e)}
+
+const DEFS=[...P.map(p=>[p[1],p[3],p[4],p[5]]),['mode',0,3,2],['cab',0,2,2],['drvon',0,1,1],['os',0,1,1]];
+const RANGE={},ST={};
+function fake(mn,mx,df){let v=df;const ls=[];return{getScaledValue:()=>v,setNormalisedValue:x=>{v=mn+x*(mx-mn);ls.forEach(f=>f())},
+  sliderDragStarted(){},sliderDragEnded(){},valueChangedEvent:{addListener:f=>ls.push(f)}}}
+DEFS.forEach(([id,mn,mx,df])=>{RANGE[id]=[mn,mx,df];ST[id]=Juce?Juce.getSliderState(id):fake(mn,mx,df)});
+const $=id=>document.getElementById(id);
+const get=id=>ST[id].getScaledValue();
+const put=(id,v)=>{const[mn,mx]=RANGE[id];ST[id].setNormalisedValue((v-mn)/(mx-mn))};
+const commit=(id,v)=>{ST[id].sliderDragStarted();put(id,v);ST[id].sliderDragEnded()};
+
+// continuous controls
+P.forEach(([g,id,label,mn,mx,df,st,u])=>{
+  const d=document.createElement('div');d.className='ctl';
+  d.innerHTML=`<label for="${id}">${label}<b id="v-${id}"></b></label><input type="range" id="${id}" min="${mn}" max="${mx}" step="${st}" value="${df}" title="${label}. Double-click to reset.">`;
+  $('g-'+g).appendChild(d);
+  const r=d.querySelector('input');let drag=false;
+  const show=()=>{const v=get(id);r.value=v;$('v-'+id).textContent=v.toFixed(st<1?1:0)+u};
+  r.addEventListener('pointerdown',()=>{drag=true;ST[id].sliderDragStarted()});
+  const end=()=>{if(drag){drag=false;ST[id].sliderDragEnded()}};
+  r.addEventListener('pointerup',end);r.addEventListener('pointercancel',end);
+  r.addEventListener('input',()=>{if(drag)put(id,+r.value);else commit(id,+r.value)});
+  r.addEventListener('dblclick',()=>commit(id,df));
+  ST[id].valueChangedEvent.addListener(show);show();
+});
+
+// choice controls (stored as integer parameters)
+function choice(el,id,names){names.forEach((nm,i)=>{const b=document.createElement('button');b.textContent=nm;b.onclick=()=>commit(id,i);el.appendChild(b)});
+  const sync=()=>[...el.children].forEach((b,i)=>b.classList.toggle('on',i===Math.round(get(id))));
+  ST[id].valueChangedEvent.addListener(sync);sync()}
+choice($('modes'),'mode',MODES);choice($('cabs'),'cab',CABS);
+$('os2').onclick=()=>commit('os',0);$('os4').onclick=()=>commit('os',1);
+$('drv-on').onclick=()=>commit('drvon',get('drvon')>.5?0:1);
+const syncBtns=()=>{$('os2').classList.toggle('on',get('os')<.5);$('os4').classList.toggle('on',get('os')>=.5);$('drv-on').classList.toggle('on',get('drvon')>.5)};
+['os','drvon'].forEach(id=>ST[id].valueChangedEvent.addListener(syncBtns));syncBtns();
+
+// presets
+Object.keys(PRESETS).forEach(k=>{const o=document.createElement('option');o.textContent=k;$('preset').appendChild(o)});
+const snap=()=>Object.fromEntries(DEFS.map(d=>[d[0],get(d[0])]));
+function restore(o){Object.entries(o).forEach(([k,v])=>commit(k,v))}
+function loadPreset(name){const base={};DEFS.forEach(([id,,,df])=>{if(id!=='os'&&id!=='drvon')base[id]=df});restore({...base,...PRESETS[name]})}
+$('preset').onchange=()=>loadPreset($('preset').value);
+$('prev').onclick=()=>{const s=$('preset');s.selectedIndex=(s.selectedIndex+s.length-1)%s.length;s.onchange()};
+$('next').onclick=()=>{const s=$('preset');s.selectedIndex=(s.selectedIndex+1)%s.length;s.onchange()};
+
+// A/B
+const slots={a:null,b:null};let cur='a';
+function pick(s){if(s===cur)return;slots[cur]=snap();const from=slots[cur];cur=s;if(!slots[s])slots[s]=from;restore(slots[s]);
+  $('ab-a').classList.toggle('on',s==='a');$('ab-b').classList.toggle('on',s==='b')}
+$('ab-a').onclick=()=>pick('a');$('ab-b').onclick=()=>pick('b');
+
+// meters (sent from the plugin ~30 times a second)
+function meter(el,v){const d=20*Math.log10(v+1e-5);el.style.width=Math.max(0,Math.min(100,(d+60)/60*100))+'%';el.classList.toggle('hot',d>-3)}
+if(window.__JUCE__)window.__JUCE__.backend.addEventListener('meters',d=>{meter($('m-in'),d.in);meter($('m-out'),d.out)});
+</script>
+</body>
+</html>
